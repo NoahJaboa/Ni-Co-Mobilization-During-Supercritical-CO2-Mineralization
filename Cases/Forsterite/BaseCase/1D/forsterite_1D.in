@@ -1,0 +1,363 @@
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE SCO2
+      OPTIONS
+        NO_STATE_TRANSITION_OUTPUT
+        ISOTHERMAL_TEMPERATURE 40.d0
+      /
+    /
+    SUBSURFACE_TRANSPORT transport
+      MODE GIRT
+      OPTIONS
+        REACTION_TEMPERATURE_DEPENDENCE ISOTHERMAL
+        REFERENCE_TEMPERATURE 40.d0
+      /
+    /
+  /
+END
+
+SUBSURFACE
+
+CO2_DATABASE ./co2_sw.dat
+
+NUMERICAL_METHODS flow
+  NEWTON_SOLVER
+    USE_INFINITY_NORM_CONVERGENCE
+    NUMERICAL_JACOBIAN
+    MINIMUM_NEWTON_ITERATIONS 2
+  /
+  TIMESTEPPER FLOW
+    TIMESTEP_MAXIMUM_GROWTH_FACTOR 1.25
+    SATURATION_CHANGE_GOVERNOR 0.1d0
+    CONCENTRATION_CHANGE_GOVERNOR 0.1d0
+    PRESSURE_CHANGE_GOVERNOR 5.d5
+    MAX_TS_CUTS 16
+  /
+END
+
+NUMERICAL_METHODS TRANSPORT
+  TIMESTEPPER
+    TS_ACCELERATION 16
+  /
+  NEWTON_SOLVER
+    MAXIMUM_NUMBER_OF_ITERATIONS 100
+  /
+END
+
+#=========================== chemistry ========================================
+CHEMISTRY
+
+  PRIMARY_SPECIES
+    H+
+    Mg++
+    SiO2(aq)
+    CO2(aq)
+    Na+
+    Cl-
+  /
+  SECONDARY_SPECIES
+    OH-
+    CO3--
+    HCO3-
+    MgOH+
+    MgHCO3+
+    MgCO3(aq)
+    H3SiO4-
+    H2SiO4--
+    NaHSiO3(aq)
+    NaCO3-
+    NaOH(aq)
+    NaCl(aq)
+    MgCl+
+  /
+  ACTIVE_GAS_SPECIES
+    GAS_TRANSPORT_IS_UNVETTED
+    CO2(g)
+  /
+  PASSIVE_GAS_SPECIES
+    CO2(g)
+  /
+  MINERALS
+    Forsterite
+    Magnesite
+    SiO2(am)
+  /
+
+  MINERAL_KINETICS
+    Forsterite
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+      SURFACE_AREA_VOL_FRAC_POWER 0.666d0
+      PREFACTOR
+        RATE_CONSTANT 6.9183d-8 mol/m^2-sec
+        ACTIVATION_ENERGY 70400 J/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.44d0
+          ATTENUATION_COEF 0.d0
+        /
+      /
+    /
+    Magnesite
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+      SURFACE_AREA_VOL_FRAC_POWER 0.666d0
+      RATE_CONSTANT 1.658d-17 mol/m^2-sec
+      ACTIVATION_ENERGY 159000 J/mol
+    /
+    SiO2(am)
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+      SURFACE_AREA_VOL_FRAC_POWER 0.666d0
+      RATE_CONSTANT 3.801d-10 mol/m^2-sec
+      ACTIVATION_ENERGY 49800 J/mol
+    /
+  /
+
+  DATABASE ./hanford.dat
+  LOG_FORMULATION
+  ACTIVITY_COEFFICIENTS TIMESTEP
+  UPDATE_POROSITY
+  UPDATE_PERMEABILITY
+
+  OUTPUT
+    PH
+    TOTAL
+    ALL
+    MINERALS
+    MINERAL_VOLUME_FRACTION
+    MINERAL_SATURATION_INDEX
+    IONIC_STRENGTH
+    MINERAL_SURFACE_AREA
+  /
+END
+
+#=========================== grid =============================================
+
+GRID
+  TYPE STRUCTURED CARTESIAN
+  NXYZ 10 1 1
+  BOUNDS
+    0.d0  0.d0  0.d0
+    10.d0 1.d0  1.d0
+  /
+END
+
+#=========================== fluid properties =================================
+FLUID_PROPERTY
+  PHASE LIQUID
+  DIFFUSION_COEFFICIENT 1.d-9
+END
+
+FLUID_PROPERTY
+  PHASE GAS
+  DIFFUSION_COEFFICIENT 2.d-5
+END
+
+#=========================== EOS ==============================================
+EOS WATER
+  DENSITY IF97
+  ENTHALPY IF97
+  STEAM_DENSITY IF97
+  STEAM_ENTHALPY IF97
+  SATURATION_PRESSURE IF97
+END
+
+EOS GAS
+  CO2_DATABASE ./co2_sw.dat
+  HENRYS_CONSTANT DEFAULT
+END
+
+#=========================== material properties ==============================
+MATERIAL_PROPERTY reservoir
+  ID 1
+  CHARACTERISTIC_CURVES reservoir_cc
+  POROSITY 0.10d0
+  TORTUOSITY 1.d0
+  ROCK_DENSITY 3222.d0
+  PERMEABILITY
+    PERM_X 1.d-14
+    PERM_Y 1.d-14
+    PERM_Z 1.d-14
+  /
+  THERMAL_CONDUCTIVITY_DRY 3.0d0
+  THERMAL_CONDUCTIVITY_WET 4.0d0
+  HEAT_CAPACITY 840.d0
+  SOIL_COMPRESSIBILITY_FUNCTION LINEAR
+  POROSITY_COMPRESSIBILITY 1.d-9
+  SOIL_REFERENCE_PRESSURE INITIAL_PRESSURE
+END
+
+#=========================== characteristic curves ============================
+
+CHARACTERISTIC_CURVES reservoir_cc
+  SATURATION_FUNCTION BROOKS_COREY
+    SMOOTH
+    UNSATURATED_EXTENSION
+    ALPHA 2.0d-5
+    LAMBDA 4.033d0
+    LIQUID_RESIDUAL_SATURATION 0.01d0
+    MAX_CAPILLARY_PRESSURE 1.d10
+  /
+  PERMEABILITY_FUNCTION BURDINE_BC_LIQ
+    PHASE LIQUID
+    LAMBDA 4.033d0
+    LIQUID_RESIDUAL_SATURATION 0.01d0
+  /
+  PERMEABILITY_FUNCTION MODIFIED_COREY_GAS
+    PHASE GAS
+    LIQUID_RESIDUAL_SATURATION 0.01d0
+    GAS_RESIDUAL_SATURATION 0.2d0
+  /
+END
+
+#=========================== output ==========================================
+OUTPUT
+  SNAPSHOT_FILE
+    TIMES y 1.d-4 1.d-3 1.d-2 1.d-1 5.d-1 1.d0 2.d0 3.d0 4.d0 5.d0
+    PERIODIC TIME 0.1 y
+    FORMAT HDF5
+  /
+  MASS_BALANCE_FILE
+    PERIODIC TIMESTEP 1
+    TOTAL_MASS_REGIONS
+      all
+    /
+  /
+  UNFILTER_NON_STATE_VARIABLES
+  VARIABLES
+    TEMPERATURE
+    LIQUID_PRESSURE
+    GAS_PRESSURE
+    LIQUID_SATURATION
+    GAS_SATURATION
+    LIQUID_MASS_FRACTIONS
+    GAS_MASS_FRACTIONS
+    LIQUID_DENSITY
+    GAS_DENSITY
+    PERMEABILITY
+    LIQUID_RELATIVE_PERMEABILITY
+    GAS_RELATIVE_PERMEABILITY
+    POROSITY
+    VOLUME
+  /
+END
+
+#=========================== time =============================================
+TIME
+  FINAL_TIME 5.d0 y
+  INITIAL_TIMESTEP_SIZE 1.d-3 s
+  MAXIMUM_TIMESTEP_SIZE 1.d-1 y
+END
+
+#=========================== regions ==========================================
+REGION all
+  COORDINATES
+    -1.d20 -1.d20 -1.d20
+     1.d20  1.d20  1.d20
+  /
+END
+
+REGION injection_cell
+  COORDINATES
+    0.d0 0.d0 0.d0
+    1.d0 1.d0 1.d0
+  /
+END
+
+REGION east
+  FACE EAST
+  COORDINATES
+    10.d0 0.d0 0.d0
+    10.d0 1.d0 1.d0
+  /
+END
+
+#=========================== flow conditions ==================================
+FLOW_CONDITION initial
+  TYPE
+    LIQUID_PRESSURE HYDROSTATIC
+    CO2_MASS_FRACTION DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  DATUM 0.d0 0.d0 1.d0
+  LIQUID_PRESSURE 1.2d7
+  CO2_MASS_FRACTION 0.d0
+  SALT_MASS_FRACTION 1.d-2
+END
+
+FLOW_CONDITION co2_rate_injection
+  SYNC_TIMESTEP_WITH_UPDATE
+  TYPE
+    RATE MASS_RATE
+  /
+  RATE LIST
+    TIME_UNITS y
+    DATA_UNITS kg/s kg/s kg/s
+    0.d0        0.d0  1.d-6  0.d0
+    2.d0        0.d0  1.d-6  0.d0
+    2.000001d0  0.d0  0.d0   0.d0
+    5.d0        0.d0  0.d0   0.d0
+  /
+END
+
+FLOW_CONDITION east_pressure
+  TYPE
+    LIQUID_PRESSURE DIRICHLET
+    CO2_MASS_FRACTION DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE 1.2d7
+  CO2_MASS_FRACTION 0.d0
+  SALT_MASS_FRACTION 1.d-2
+END
+
+#=========================== transport conditions =============================
+TRANSPORT_CONDITION initial
+  TYPE ZERO_GRADIENT
+  CONSTRAINT_LIST
+    0.d0 initial
+  /
+END
+
+#=========================== constraints ======================================
+CONSTRAINT initial
+  CONCENTRATIONS
+    H+        7.d0      P
+    Mg++      3.2d-2    T
+    SiO2(aq)  1.9d-3    T
+    CO2(aq)   1.d-5     T
+    Na+       1.d-2     T
+    Cl-       1.d-2     T
+  /
+  MINERALS
+    Forsterite  0.85d0  1.0d5  m^2/m^3
+    Magnesite   0.d0    2.4d3  m^2/m^3
+    SiO2(am)    0.d0    3.0d2  m^2/m^3
+  /
+END
+
+#=========================== condition couplers ===============================
+INITIAL_CONDITION
+  FLOW_CONDITION initial
+  TRANSPORT_CONDITION initial
+  REGION all
+END
+
+SOURCE_SINK co2_source
+  FLOW_CONDITION co2_rate_injection
+  TRANSPORT_CONDITION initial
+  REGION injection_cell
+END
+
+BOUNDARY_CONDITION east_bc
+  FLOW_CONDITION east_pressure
+  TRANSPORT_CONDITION initial
+  REGION east
+END
+
+#=========================== stratigraphy =====================================
+STRATA
+  REGION all
+  MATERIAL reservoir
+END
+
+END_SUBSURFACE
