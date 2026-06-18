@@ -1,0 +1,248 @@
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE SCO2
+      OPTIONS
+        ISOTHERMAL_TEMPERATURE 20.d0  
+      END
+    END
+  END
+END
+
+SUBSURFACE
+
+NUMERICAL_METHODS flow
+
+  NEWTON_SOLVER
+    USE_INFINITY_NORM_CONVERGENCE
+    NUMERICAL_JACOBIAN
+    MINIMUM_NEWTON_ITERATIONS 2
+  END
+
+  LINEAR_SOLVER
+    SOLVER DIRECT
+  END
+
+  TIMESTEPPER FLOW
+    TIMESTEP_MAXIMUM_GROWTH_FACTOR 1.25
+  END
+
+END
+
+#=========================== discretization ===================================
+GRID
+  TYPE STRUCTURED CARTESIAN
+  NXYZ 1 1 1
+  DXYZ
+    10.d0
+    10.d0
+    10.d0
+  /
+END
+
+#=========================== fluid properties =================================
+FLUID_PROPERTY
+  PHASE LIQUID
+  DIFFUSION_COEFFICIENT 2.d-9
+END
+
+FLUID_PROPERTY
+  PHASE GAS
+  DIFFUSION_COEFFICIENT 2.d-5
+END
+
+#=========================== more fluid properties ============================
+EOS WATER
+  DENSITY IF97
+  ENTHALPY IF97
+  STEAM_DENSITY IF97
+  STEAM_ENTHALPY IF97
+  SATURATION_PRESSURE IF97
+END
+
+EOS GAS
+  CO2_DATABASE ../../co2_sw.dat
+  HENRYS_CONSTANT DEFAULT
+END
+
+
+#=========================== material properties ==============================
+MATERIAL_PROPERTY Reservoir
+  ID 6
+  CHARACTERISTIC_CURVES Reservoir
+  POROSITY 0.08
+  TORTUOSITY 1.d0
+  ROCK_DENSITY 2650.d0
+  THERMAL_CONDUCTIVITY_DRY 2.d0
+  THERMAL_CONDUCTIVITY_WET 2.18d0
+  HEAT_CAPACITY 1000 J/kg-C
+  PERMEABILITY
+    PERM_ISO 1e-15
+  /
+  SOIL_COMPRESSIBILITY_FUNCTION POROSITY_EXPONENTIAL
+  POROSITY_COMPRESSIBILITY 4.5d-10
+  SOIL_REFERENCE_PRESSURE 1.2d7
+END
+#=========================== characteristic curves ============================
+
+CHARACTERISTIC_CURVES Reservoir
+  SATURATION_FUNCTION VG_STOMP
+    MAX_TRAPPED_GAS_SAT 0.2
+    ALPHA 5.d-1
+    N 1.84162
+    OVEN_DRIED_CAP_HEAD 102108.2d0
+    LIQUID_RESIDUAL_SATURATION 0.3d0
+  /
+  PERMEABILITY_FUNCTION MUALEM_VG_LIQ
+    PHASE LIQUID
+    M 0.457
+    LIQUID_RESIDUAL_SATURATION 0.0
+  /
+  PERMEABILITY_FUNCTION MODIFIED_COREY_GAS
+    PHASE GAS
+    LIQUID_RESIDUAL_SATURATION 0.3
+    GAS_RESIDUAL_SATURATION 0.0
+  /
+END
+
+#=========================== output options ===================================
+OUTPUT
+  SNAPSHOT_FILE
+    TIMES y 0.00001 0.0001 0.001 0.01 0.1 0.5 1.0 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3.0 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4.0
+    FORMAT TECPLOT POINT
+  /
+  UNFILTER_NON_STATE_VARIABLES
+  
+  VARIABLES
+   THERMODYNAMIC_STATE
+   TEMPERATURE
+   LIQUID_PRESSURE
+   GAS_PRESSURE
+   LIQUID_SATURATION
+   GAS_SATURATION
+   PRECIPITATE_SATURATION
+   TRAPPED_GAS_SATURATION
+   LIQUID_MASS_FRACTIONS
+   GAS_MASS_FRACTIONS
+   LIQUID_DENSITY
+   GAS_DENSITY
+   PERMEABILITY
+   LIQUID_RELATIVE_PERMEABILITY
+   GAS_RELATIVE_PERMEABILITY
+   POROSITY
+  /
+END
+
+#=========================== times ============================================
+TIME
+  FINAL_TIME 4 y
+  INITIAL_TIMESTEP_SIZE 1.d3 s
+  MAXIMUM_TIMESTEP_SIZE 1.d-2 y
+END
+
+
+#=========================== regions ==========================================
+REGION all
+  COORDINATES
+    0.d0 0.d0 0.d0
+    1.d5 1.d5 1.d5
+  /
+END
+
+REGION west
+  FACE WEST
+  COORDINATES
+    0.d0  0.d0  0.d0 
+    0.d0  10.d0 10.d0 
+  /
+END
+
+REGION east
+  FACE EAST
+  COORDINATES
+    10.d0  0.d0  0.d0   
+    10.d0  10.d0 10.d0   
+  /
+END
+
+#=========================== flow conditions ==================================
+
+FLOW_CONDITION initial
+  TYPE
+    LIQUID_PRESSURE DIRICHLET
+    GAS_PRESSURE DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE 1.2d7
+  GAS_PRESSURE    1.4d7
+  SALT_MASS_FRACTION 0.d0
+END
+
+FLOW_CONDITION west
+  TYPE
+    LIQUID_PRESSURE DIRICHLET
+    CO2_MASS_FRACTION DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE 1.2d7
+  CO2_MASS_FRACTION 0.d0
+  SALT_MASS_FRACTION 0.d0
+END
+
+FLOW_CONDITION east
+  TYPE
+    LIQUID_PRESSURE DIRICHLET
+    CO2_MASS_FRACTION DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE 1.2d7
+  CO2_MASS_FRACTION 0.d0
+  SALT_MASS_FRACTION 0.d0
+END
+
+FLOW_CONDITION injection
+  TYPE
+    RATE MASS_RATE
+  /
+  SYNC_TIMESTEP_WITH_UPDATE
+  RATE LIST
+    TIME_UNITS y
+    DATA_UNITS kg/s kg/s kg/s
+    0.d0 0.d0 0.d0 0.d0
+    1.d0 0.d0 1.d0 0.d0
+    2.d0 0.d0 0.d0 0.d0
+    3.d0 0.d0 1.d-1 0.d0
+  /
+END
+
+#=========================== condition couplers ===============================
+# initial condition
+INITIAL_CONDITION all
+  FLOW_CONDITION initial
+  REGION all
+END
+
+BOUNDARY_CONDITION west
+  FLOW_CONDITION west
+  REGION west
+END
+
+BOUNDARY_CONDITION east
+  FLOW_CONDITION east
+  REGION east
+END
+
+SOURCE_SINK injection
+  FLOW_CONDITION injection
+  REGION all
+END
+
+#=========================== stratigraphy couplers ============================
+STRATA
+  REGION all
+  MATERIAL Reservoir
+END
+
+#=========================== convergence criteria  ============================
+END_SUBSURFACE

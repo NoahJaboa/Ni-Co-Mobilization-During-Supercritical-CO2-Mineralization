@@ -1,0 +1,504 @@
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE SCO2
+      OPTIONS
+        NO_STATE_TRANSITION_OUTPUT
+        FIXED_TEMPERATURE_GRADIENT
+      /
+    /
+    SUBSURFACE_TRANSPORT
+     MODE GIRT
+      OPTIONS
+        REACTION_TEMPERATURE_DEPENDENCE ISOTHERMAL
+        REFERENCE_TEMPERATURE 25
+      /
+    /
+  /
+
+END
+
+SUBSURFACE
+
+ISOTHERMAL
+CO2_DATABASE ../../co2_sw.dat
+
+NUMERICAL_METHODS flow
+
+  NEWTON_SOLVER
+    USE_INFINITY_NORM_CONVERGENCE
+    NUMERICAL_JACOBIAN
+    MINIMUM_NEWTON_ITERATIONS 2
+  END
+
+  TIMESTEPPER FLOW
+    TIMESTEP_MAXIMUM_GROWTH_FACTOR 1.25
+  END
+
+END
+
+NUMERICAL_METHODS TRANSPORT
+
+  TIMESTEPPER
+    TS_ACCELERATION 16
+  /
+
+END
+
+#=========================== chemistry ========================================
+CHEMISTRY
+  PRIMARY_SPECIES
+    Al+++
+    Ca++
+    Fe++
+    K+
+    Mg++
+    Mn++
+    Na+
+    SiO2(aq)
+    Ti(OH)4(aq)
+    H+
+    CO2(aq)
+  /
+
+  SECONDARY_SPECIES
+    HCO3-
+    OH-
+    Al(OH)2+_prb5
+    AlO2-_prb5
+    AlOH++_prb5
+    CO3--
+    CaCO3(aq)
+    CaHCO3+
+    Fe(OH)3(aq)_prb5
+    Fe(OH)4-_prb5
+    FeHCO3+_prb5
+    HAlO2(aq)_prb5
+    HSiO3-_prb5
+    MgCO3(aq)
+    MgHCO3+
+    MnCO3(aq)
+    MnHCO3+
+    MnOH+
+    NaHCO3(aq)
+    NaHSiO3(aq)
+  /
+
+  ACTIVE_GAS_SPECIES
+    GAS_TRANSPORT_IS_UNVETTED
+    CO2(g)
+  /
+  PASSIVE_GAS_SPECIES
+    CO2(g)
+  /
+
+  MINERALS
+    Calcite-prb5
+    Anatase-prb5
+    Beidellite-Ca-prb5
+    Beidellite-K-prb5
+    Beidellite-Mg-prb5
+    Chalcedony-prb5
+    Dawsonite-prb5
+    Dolomite-prb5
+    Rhodochrosite-prb5
+    Siderite-prb5
+    Plagioclase-prb5
+    Clinopyroxene-prb5
+    Glass-prb5
+    Magnetite-prb5
+  /
+
+  MINERAL_KINETICS
+    Calcite-prb5
+      PREFACTOR
+        RATE_CONSTANT 5.01d-1 mol/m^2-sec
+        ACTIVATION_ENERGY 14.4 kJ/mol
+          PREFACTOR_SPECIES H+
+          ALPHA 1.0
+        /
+      /
+    /
+    Anatase-prb5
+      PREFACTOR
+        RATE_CONSTANT 4.47d-9 mol/m^2-sec
+        ACTIVATION_ENERGY 37.9 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.421
+        /
+      /
+    /
+    Beidellite-Ca-prb5
+      PREFACTOR
+        RATE_CONSTANT 1.05d-11 mol/m^2-sec
+        ACTIVATION_ENERGY 23.6 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.34
+        /
+      /
+    /
+    Beidellite-K-prb5
+      PREFACTOR
+        RATE_CONSTANT 1.05d-11 mol/m^2-sec
+        ACTIVATION_ENERGY 23.6 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.34
+        /
+      /
+    /
+    Beidellite-Mg-prb5
+      PREFACTOR
+        RATE_CONSTANT 1.05d-11 mol/m^2-sec
+        ACTIVATION_ENERGY 23.6 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.34
+        /
+      /
+    /
+    Chalcedony-prb5
+      RATE_CONSTANT 5.88d-13 mol/m^2-sec
+      ACTIVATION_ENERGY 62.8 kJ/mol
+    /
+    Dawsonite-prb5
+      RATE_CONSTANT 1.0d-7 mol/m^2-sec
+      ACTIVATION_ENERGY 62.8 kJ/mol
+    /
+    Dolomite-prb5
+      PREFACTOR
+        RATE_CONSTANT 1.78d-04 mol/m^2-sec
+        ACTIVATION_ENERGY 56.7 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.5
+        /
+      /
+    /
+    Rhodochrosite-prb5
+      PREFACTOR
+        RATE_CONSTANT 1.02d-3 mol/m^2-sec
+        ACTIVATION_ENERGY 20.96 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.9
+        /
+      /
+    /
+    Siderite-prb5
+      PREFACTOR
+      RATE_CONSTANT 1.02d-3 mol/m^2-sec
+      ACTIVATION_ENERGY 20.96 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.9
+        /
+      /
+    /
+    Plagioclase-prb5
+      PREFACTOR
+        DISSOLUTION_RATE_CONSTANT 1.55e-08 mol/m^2-sec
+        PRECIPITATION_RATE_CONSTANT 0.d0
+        ACTIVATION_ENERGY 42.1 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.626
+        /
+      /
+    /
+    Clinopyroxene-prb5
+      PREFACTOR
+        DISSOLUTION_RATE_CONSTANT 1.65e-07 mol/m^2-sec
+        PRECIPITATION_RATE_CONSTANT 0.d0
+        ACTIVATION_ENERGY 78.0 kJ/mol
+         PREFACTOR_SPECIES H+
+         ALPHA 0.7
+        /
+      /
+    /
+    Glass-prb5
+      PREFACTOR
+        DISSOLUTION_RATE_CONSTANT 4.17e-09 mol/m^2-sec
+        PRECIPITATION_RATE_CONSTANT 0.d0
+        ACTIVATION_ENERGY 30.3 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.318
+        /
+      /
+    /
+    Magnetite-prb5
+      PREFACTOR
+        DISSOLUTION_RATE_CONSTANT 8.34e-12 mol/m^2-sec
+        PRECIPITATION_RATE_CONSTANT 0.d0
+        ACTIVATION_ENERGY 18.6 kJ/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.279
+        /
+      /
+    /
+  /
+  OVERRIDE_MINERAL_MASS_ACTION
+    Glass-prb5
+      REACTION Glass-prb5 <-> 1.0 SiO2(aq)
+      LOGK 500. -2.6014 500. 500. 500. 500. 500. 500.
+    /
+  /
+
+  DATABASE ./problem-5.dat
+  LOG_FORMULATION
+  ACTIVITY_COEFFICIENTS TIMESTEP
+  OUTPUT
+    SECONDARY_SPECIES
+    FREE_ION
+    PH
+    TOTAL
+    ALL
+    MINERALS
+    MINERAL_SATURATION_INDEX
+  /
+END
+
+#=========================== discretization ===================================
+GRID
+  TYPE STRUCTURED CYLINDRICAL
+  ORIGIN 0.0d0 0.d0 -843.8388d0
+  NXYZ 50 1 12
+  DXYZ
+    50@6.096d0
+    1@1.d0
+    12@1.2192d0
+  /
+END
+
+#=========================== fluid properties =================================
+FLUID_PROPERTY
+  PHASE LIQUID
+  DIFFUSION_COEFFICIENT 2.d-9
+END
+
+FLUID_PROPERTY
+  PHASE GAS
+  DIFFUSION_COEFFICIENT 2.d-5
+END
+
+#=========================== more fluid properties ============================
+EOS WATER
+  DENSITY IF97
+  ENTHALPY IF97
+  STEAM_DENSITY IF97
+  STEAM_ENTHALPY IF97
+  SATURATION_PRESSURE IF97
+END
+
+EOS GAS
+  CO2_DATABASE ../../co2_sw.dat
+  HENRYS_CONSTANT DEFAULT
+END
+
+
+#=========================== material properties ==============================
+MATERIAL_PROPERTY SCFT
+  ID 1
+  CHARACTERISTIC_CURVES SCFT
+  POROSITY 0.1
+  TORTUOSITY 1.d0
+  ROCK_DENSITY 2650.d0
+  THERMAL_CONDUCTIVITY_DRY 2.d0
+  THERMAL_CONDUCTIVITY_WET 2.18d0
+  HEAT_CAPACITY 1000 J/kg-C
+  PERMEABILITY
+    PERM_X 6.6632653e-14
+    PERM_Y 6.6632653e-14
+    PERM_Z 6.6632653e-15
+  /
+  SOIL_COMPRESSIBILITY_FUNCTION LINEAR
+  POROSITY_COMPRESSIBILITY 1.3488504e-10
+  SOIL_REFERENCE_PRESSURE 101325.d0
+END
+
+#=========================== characteristic curves ============================
+
+CHARACTERISTIC_CURVES SCFT
+  SATURATION_FUNCTION BROOKS_COREY
+    UNSATURATED_EXTENSION
+    ALPHA 0.00018896447
+    LAMBDA 4.033
+    LIQUID_RESIDUAL_SATURATION 0.01
+    MAX_CAPILLARY_PRESSURE 1.d9
+  /
+  PERMEABILITY_FUNCTION BURDINE_BC_LIQ
+    PHASE LIQUID
+    LAMBDA 4.033
+    LIQUID_RESIDUAL_SATURATION 0.01
+  /
+  PERMEABILITY_FUNCTION MODIFIED_COREY_GAS
+    PHASE GAS
+    LIQUID_RESIDUAL_SATURATION 0.01
+    GAS_RESIDUAL_SATURATION 0.2
+  /
+END
+
+#=========================== output options ===================================
+OUTPUT
+  SNAPSHOT_FILE
+    TIMES d 14.d0
+    TIMES y 1.d-2 1.d-1 1.d0
+    PERIODIC TIME 1.d0 y
+    FORMAT HDF5
+  /
+
+  MASS_BALANCE_FILE
+    PERIODIC TIMESTEP 1
+     TOTAL_MASS_REGIONS
+       all
+    /
+  /
+
+  UNFILTER_NON_STATE_VARIABLES
+
+  VARIABLES
+   TEMPERATURE
+   LIQUID_PRESSURE
+   GAS_PRESSURE
+   LIQUID_SATURATION
+   GAS_SATURATION
+   PRECIPITATE_SATURATION
+   TRAPPED_GAS_SATURATION
+   LIQUID_MASS_FRACTIONS
+   GAS_MASS_FRACTIONS
+   GAS_DENSITY
+   PERMEABILITY
+   LIQUID_RELATIVE_PERMEABILITY
+   GAS_RELATIVE_PERMEABILITY
+   POROSITY
+   VOLUME
+  /
+END
+
+#=========================== times ============================================
+TIME
+  FINAL_TIME 1.d1 y
+  INITIAL_TIMESTEP_SIZE 1.d0 s
+  MAXIMUM_TIMESTEP_SIZE 5.d0 d
+END
+
+
+#=========================== regions ==========================================
+REGION all
+  COORDINATES
+    0.d0    0.d0 -1000d0
+    3048.d0 1.d0 0.d0
+  /
+END
+
+REGION edge
+  FACE EAST
+  COORDINATES
+    304.8d0 0.d0  -843.8388d0
+    304.8d0 1.d0  -829.2084
+  /
+END
+
+REGION injection
+  COORDINATES
+    0.d0 0.d0  -843.8388d0
+    0.d0 1.d0  -829.2084
+  /
+END
+
+#=========================== flow conditions ==================================
+
+FLOW_CONDITION initial
+  TYPE
+    LIQUID_PRESSURE HYDROSTATIC
+    CO2_MASS_FRACTION DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+    TEMPERATURE DIRICHLET
+  /
+  DATUM 0.d0 0.d0 -1087.526d0
+  GRADIENT
+    TEMPERATURE 0.d0 0.d0 -0.026793525809
+  /
+  LIQUID_PRESSURE 1.0004d7
+  CO2_MASS_FRACTION 0.d0 
+  SALT_MASS_FRACTION 1.d-2
+  TEMPERATURE 39.8267952825
+END
+
+FLOW_CONDITION injection
+  SYNC_TIMESTEP_WITH_UPDATE
+  TYPE
+    RATE MASS_RATE
+  /
+  RATE LIST
+    TIME_UNITS d
+    DATA_UNITS kg/s kg/s kg/s MW
+    0.d0  0.d0 0.06889329806 0.d0 0.d0
+    14.d0 0.d0 0.d0 0.d0 0.d0
+  /
+END
+
+#=========================== transport conditions =============================
+TRANSPORT_CONDITION background_conc
+  TYPE ZERO_GRADIENT
+  CONSTRAINT_LIST
+    0.d0 initial_constraint
+  /
+END
+
+#=========================== constraints ======================================
+CONSTRAINT initial_constraint
+  CONCENTRATIONS
+    Al+++         8.48d-6  T
+    Ca++          2.7d-5   T
+    Fe++          1.72d-5  T
+    K+            6.01d-5  T
+    Mg++          4.53d-6  T
+    Mn++          2.57d-7  T
+    Na+           4.03d-3  T
+    SiO2(aq)      1.28d-3  T
+    Ti(OH)4(aq)   2.26d-10  T
+    H+            9.       P
+    CO2(aq)       1.d-5   T
+  /
+ MINERALS
+   Chalcedony-prb5 0.d0 1.d0
+   Anatase-prb5 0.d0 1.d0
+   Beidellite-Ca-prb5 0.d0 1.d0
+   Beidellite-K-prb5 0.d0 1.d0
+   Beidellite-Mg-prb5 0.d0 1.d0
+   Dawsonite-prb5 0.d0 1.d0
+   Dolomite-prb5 0.d0 1.d0
+   Calcite-prb5 0.d0 1.d0
+   Rhodochrosite-prb5 0.d0 1.d0
+   Siderite-prb5 0.d0 1.d0
+   Plagioclase-prb5 0.3366d0 2.3 m^2/kg
+   Clinopyroxene-prb5 0.1719d0 1.9 m^2/kg
+   Glass-prb5 0.3825d0 2.2 m^2/kg
+   Magnetite-prb5 0.009d0 1.2 m^2/kg
+ /
+/
+
+#=========================== condition couplers ===============================
+# initial condition
+INITIAL_CONDITION all
+  FLOW_CONDITION initial
+  TRANSPORT_CONDITION background_conc
+  REGION all
+END
+
+SOURCE_SINK injection
+  FLOW_CONDITION injection
+  TRANSPORT_CONDITION background_conc
+  REGION injection
+END
+
+BOUNDARY_CONDITION edge
+  FLOW_CONDITION initial
+  TRANSPORT_CONDITION background_conc
+  REGION edge
+END
+
+#=========================== stratigraphy couplers ============================
+STRATA
+  REGION all
+  MATERIAL SCFT
+END
+
+#=========================== convergence criteria  ============================
+END_SUBSURFACE
