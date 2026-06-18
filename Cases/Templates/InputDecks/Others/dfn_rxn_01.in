@@ -1,0 +1,382 @@
+ 
+
+
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE RICHARDS
+    /
+    SUBSURFACE_TRANSPORT transport
+      MODE GIRT
+      OPTIONS
+        SKIP_RESTART
+      /
+    /
+  /
+  RESTART
+    FILENAME dfn_flow_01-restart.h5
+    RESET_TO_TIME_ZERO
+  END
+END
+
+SUBSURFACE
+
+#=========================== numerical methods ================================
+skip
+NUMERICAL_METHODS TRANSPORT
+  TIMESTEPPER 
+  MAX_TS_CUTS 50                      
+  MAXIMUM_CONSECUTIVE_TS_CUTS 20
+  NUM_STEPS_AFTER_TS_CUT 0            
+  TIMESTEP_REDUCTION_FACTOR 0.2       
+/
+ NEWTON_SOLVER
+    RTOL 1.d-5
+    ATOL 1.d-5
+    STOL 1.d-12
+/ 
+  LINEAR_SOLVER
+    SOLVER GMRES  # DIRECT
+    RTOL 1.d-5
+    ATOL 1.d-5
+  /
+END
+
+
+NUMERICAL_METHODS FLOW
+  TIMESTEPPER   
+  MAX_TS_CUTS 50                      
+  MAXIMUM_CONSECUTIVE_TS_CUTS 20
+  NUM_STEPS_AFTER_TS_CUT 0            
+  TIMESTEP_REDUCTION_FACTOR 0.2       
+/
+ NEWTON_SOLVER
+    RTOL 1.d-5
+    ATOL 1.d-5
+    STOL 1.d-12
+/ 
+  LINEAR_SOLVER
+    SOLVER GMRES  #DIRECT
+    RTOL 1.d-5
+    ATOL 1.d-5
+  /
+END
+noskip
+
+CO2_DATABASE /Users/hyman/src/pflotran/database/co2data0.dat
+
+
+#=========================== discretization ===================================
+GRID
+  TYPE unstructured_explicit full_mesh_vol_area.uge 
+  GRAVITY 0.d0 0.d0 0.d0
+END
+
+#=========================== fluid properties =================================
+FLUID_PROPERTY
+  PHASE LIQUID
+  DIFFUSION_COEFFICIENT 1.43887e-08
+END
+
+DATASET Permeability
+  FILENAME dfn_properties.h5
+END
+
+#=========================== material properties ==============================
+MATERIAL_PROPERTY rock
+  ID 1
+  POROSITY 0.117
+  TORTUOSITY 1.d0
+  LONGITUDINAL_DISPERSIVITY 0.5 # dx/10
+  CHARACTERISTIC_CURVES curve_1
+  ROCK_DENSITY 3300 kg/m^3 # kg/m3 
+  PERMEABILITY
+    DATASET Permeability 
+/
+/
+
+#================================================= relative permeability-saturation function curve properties =============================
+CHARACTERISTIC_CURVES curve_1
+  SATURATION_FUNCTION VAN_GENUCHTEN    
+  LIQUID_RESIDUAL_SATURATION 0.1d0
+  M 0.818d0
+  ALPHA 2.35d-5 
+  /
+  PERMEABILITY_FUNCTION MUALEM_VG_LIQ  
+  LIQUID_RESIDUAL_SATURATION 0.1d0     
+  M 0.818d0
+  /
+END
+
+#=========================== chemistry ========================================
+CHEMISTRY
+  PRIMARY_SPECIES
+    H+
+    SiO2(aq)
+    Mg++
+    HCO3-
+    Na+
+    Cl-
+  /
+  SECONDARY_SPECIES
+    OH-   
+    CO3--   
+    NaCO3-
+    NaOH(aq)
+    NaCl(aq)
+    MgCO3(aq)
+    MgHCO3+
+    MgOH+
+    H2SiO4--
+    H3SiO4-    
+    NaHSiO3(aq)
+#    HCO3-
+     CO2(aq)
+/
+ PASSIVE_GAS_SPECIES
+    CO2(g)
+/
+  MINERALS
+    Forsterite
+    Magnesite
+    SiO2(am)
+ /   
+  MINERAL_KINETICS
+   Forsterite
+       SURFACE_AREA_VOL_FRAC_POWER 0.666
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+       PREFACTOR
+        
+        RATE_CONSTANT 6.9183d-8 mol/m^2-sec  # [source: Hermanska et al, 2022]
+        ACTIVATION_ENERGY 70400 J/mol
+        PREFACTOR_SPECIES H+
+          ALPHA 0.44d0
+          ATTENUATION_COEF 0.d0
+         /
+        /
+        PREFACTOR
+         RATE_CONSTANT 4.6773d-9 mol/m^2-sec  # [source: Hermanska et al, 2022]
+               # SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+         ACTIVATION_ENERGY 60900 J/mol
+         PREFACTOR_SPECIES H+ 
+          ALPHA 0.22d0
+          ATTENUATION_COEF 0.d0
+         /
+        /
+  / 
+   Magnesite
+      RATE_CONSTANT 1.658d-17  mol/m^2-sec   # rate at 25 C  [source: Saldi et al]
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+      SURFACE_AREA_VOL_FRAC_POWER 0.666
+      ACTIVATION_ENERGY 159000 J/mol
+#      AFFINITY_POWER 2
+  /
+   SiO2(am)
+      RATE_CONSTANT 3.801d-10  mol/m^2-sec    # rate at 25 C   [source: Pallandri]
+      SURFACE_AREA_FUNCTION VOLUME_FRACTION_RATIO
+      SURFACE_AREA_VOL_FRAC_POWER 0.666
+      ACTIVATION_ENERGY 49800 J/mol
+#      AFFINITY_POWER 2
+  /
+/
+ 
+ DATABASE /Users/jhyman/src/pflotran/database/hanford.dat 
+ 
+  LOG_FORMULATION
+  ACTIVITY_COEFFICIENTS TIMESTEP
+  #UPDATE_MINERAL_SURFACE_AREA
+  UPDATE_POROSITY
+  UPDATE_PERMEABILITY
+  MOLAL
+  OUTPUT
+    PH
+    TOTAL
+    ALL
+    MINERALS
+    MINERAL_VOLUME_FRACTION
+    MINERAL_SURFACE_AREA
+    MINERAL_SATURATION_INDEX  
+  /
+/
+
+#=========================== output options ===================================
+OUTPUT
+ PERIODIC TIME 1e-4 y
+  MASS_BALANCE
+  MASS_BALANCE_FILE
+    TOTAL_MASS_REGIONS
+      All
+    /
+  /
+   FORMAT VTK
+   ACKNOWLEDGE_VTK_FLAW
+  VARIABLES
+    LIQUID_PRESSURE
+    POROSITY
+    PERMEABILITY
+    NO_FLOW_VARIABLES
+    NO_ENERGY_VARIABLES
+    VOLUME
+/
+END
+
+
+skip
+OUTPUT
+ FORMAT HDF5
+ PERIODIC TIME 0.1 y
+ VARIABLES
+   POROSITY
+   LIQUID_PRESSURE
+   VOLUME
+/
+END
+noskip
+
+#=========================== times ============================================
+TIME  
+  FINAL_TIME 1e-3 y
+  INITIAL_TIMESTEP_SIZE 1.d-4             
+  MAXIMUM_TIMESTEP_SIZE 1.369d-3 y # at 0.1 y    
+END
+
+#=========================== regions ==========================================
+REGION All
+  COORDINATES
+    -1.d20 -1.d20 -1.d20
+    1.d20 1.d20 1.d20
+  /
+END 
+
+REGION pinned 
+  FILE pinned.ex
+END
+
+
+REGION injection_side
+  FILE boundary_left_w.ex
+END
+
+REGION production_side
+  FILE boundary_right_e.ex
+END
+
+#=========================================== condition couplers ============================================================
+FLOW_CONDITION Initial_state
+TYPE
+LIQUID_PRESSURE DIRICHLET     
+/                  
+LIQUID_PRESSURE 13.78951d6            
+END
+
+
+FLOW_CONDITION pinned
+  TYPE
+    LIQUID_PRESSURE dirichlet
+  /
+  LIQUID_PRESSURE 13.78951d6
+END
+
+
+FLOW_CONDITION injection
+SYNC_TIMESTEP_WITH_UPDATE
+TYPE
+RATE SCALED_VOLUMETRIC_RATE VOLUME    
+/
+  RATE  5.921263906936e-02 m^3/day      
+END
+
+
+FLOW_CONDITION extraction 
+SYNC_TIMESTEP_WITH_UPDATE
+TYPE
+RATE SCALED_VOLUMETRIC_RATE VOLUME 
+ /
+  RATE -5.921263906936e-02 m^3/d
+END
+
+
+TRANSPORT_CONDITION initial_conc
+  TYPE ZERO_GRADIENT
+  CONSTRAINT_LIST
+    0.d0 initial_constraint
+  /
+END
+
+
+TRANSPORT_CONDITION inflow_conc
+  TYPE DIRICHLET                  
+  CONSTRAINT_LIST
+    0.d0 inlect_constraint
+  /
+END
+
+REFERENCE_TEMPERATURE  185.08 C
+
+
+#=========================== constraints ======================================
+CONSTRAINT initial_constraint
+  CONCENTRATIONS
+    H+       7.56       pH   
+    HCO3-    0.64d0     T  
+    Mg++     1.d-20     T   
+    SiO2(aq) 1.d-20     T
+    Na+      1.64d0     T
+    Cl-      1.d0       T
+  /
+ MINERALS
+   Forsterite 0.883  1.298804851023e+04 m^2/m^3     # [check Rimstidt paper: max = 0.93 m2/g; min = 0.034 m2/g]
+   Magnesite  0.d0  2.384535352818e+03  m^2/m^3                 
+   SiO2(am)   0.d0  3.010559351362e+02  m^2/m^3
+ /
+ EQUILIBRATE_AT_EACH_CELL
+END
+
+
+CONSTRAINT inlect_constraint
+  CONCENTRATIONS
+    H+       7.0        Z   
+    HCO3-    100.d0     G CO2(g) 
+    Mg++     1.d-20     T
+    SiO2(aq) 1.d-20     T
+    Na+      1.d-20     T
+    Cl-      1.d-20     T
+  /
+ END
+
+#=========================== condition couplers ===============================
+INITIAL_CONDITION initial
+  FLOW_CONDITION Initial_state
+  TRANSPORT_CONDITION initial_conc
+  REGION All
+END
+
+
+SOURCE_SINK inflow
+    FLOW_CONDITION injection 
+    TRANSPORT_CONDITION inflow_conc
+    REGION injection_side
+END
+
+SOURCE_SINK outflow
+    FLOW_CONDITION extraction 
+    TRANSPORT_CONDITION initial_conc  
+    REGION production_side 
+END
+
+BOUNDARY_CONDITION PINNED 
+  FLOW_CONDITION pinned
+  TRANSPORT_CONDITION initial_conc  
+  REGION pinned
+END
+
+#=========================== stratigraphy couplers ============================
+STRATA
+  REGION All
+  MATERIAL rock
+END
+
+
+END_SUBSURFACE
+
