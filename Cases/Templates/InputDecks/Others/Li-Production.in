@@ -1,0 +1,379 @@
+################################################################################
+# PFLOTRAN Input: SCO2 + GIRT Reactive Transport
+# Title: Sustainable lithium production from formation brines:
+#        reservoir-scale modeling of Mg and Ca carbonation by CO2 injection
+#
+# ARCHITECTURE: Based on regression_tests/shortcourse/copper_leaching/cu_leaching.in
+#   - SCALED_MASS_RATE NEIGHBOR_PERM for injection and production SOURCE_SINKs
+#   - One pressure BC at east face (per Michael: need at least one flow BC)
+#   - West injection via SOURCE_SINK only (first cell, x=0-1m)
+#   - East production via SOURCE_SINK only (last cell, x=99-100m)
+#   - East face BC anchors domain pressure
+#
+# NOTE from cu_leaching.in: "Do not use SCALED_VOLUMETRIC_RATE"
+#
+# INJECTION CHEMISTRY (per Dr. Lee):
+#   Same Mg2+, Ca2+, Li+ as formation brine — only CO2 differs
+################################################################################
+
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE SCO2
+      OPTIONS
+        ISOTHERMAL_TEMPERATURE 50.d0
+      /
+    /
+    SUBSURFACE_TRANSPORT transport
+      MODE GIRT
+    /
+  /
+  CHECKPOINT
+    PERIODIC TIMESTEP 50
+    FORMAT HDF5
+  /
+END
+
+SUBSURFACE
+
+################################################################################
+# NUMERICAL METHODS
+################################################################################
+NUMERICAL_METHODS FLOW
+  TIMESTEPPER
+    TS_ACCELERATION               8
+    PRESSURE_CHANGE_GOVERNOR      5.d4
+    SATURATION_CHANGE_GOVERNOR    0.025d0
+    CONCENTRATION_CHANGE_GOVERNOR 1.d-2
+    MAX_TS_CUTS                   20
+  /
+  NEWTON_SOLVER
+    ITOL_UPDATE                   1.d0
+    ATOL                          1.d-8
+    RTOL                          1.d-8
+    STOL                          1.d-30
+    DTOL                          1.d15
+    MAXIMUM_NUMBER_OF_ITERATIONS  15
+    NO_INFINITY_NORM
+  /
+  LINEAR_SOLVER
+    SOLVER DIRECT
+  /
+END
+
+NUMERICAL_METHODS TRANSPORT
+  TIMESTEPPER
+    TS_ACCELERATION 32
+    MAX_STEPS       100000
+  /
+  NEWTON_SOLVER
+    ITOL_UPDATE 1.d0
+    RTOL        1.d-8
+    ATOL        1.d-8
+    DTOL        1.d6
+    STOL        1.d-30
+  /
+  LINEAR_SOLVER
+    SOLVER DIRECT
+  /
+END
+
+################################################################################
+# GRID
+################################################################################
+GRID
+  TYPE structured
+  NXYZ 100 1 1
+  BOUNDS
+    0.d0   0.d0  0.d0
+    100.d0 1.d0  1.d0
+  /
+END
+
+################################################################################
+# REGIONS
+################################################################################
+REGION all
+  COORDINATES
+    0.d0   0.d0  0.d0
+    100.d0 1.d0  1.d0
+  /
+END
+
+REGION east
+  FACE EAST
+  COORDINATES
+    100.d0 0.d0  0.d0
+    100.d0 1.d0  1.d0
+  /
+END
+
+REGION inj_well
+  COORDINATES
+    0.d0  0.d0  0.d0
+    1.d0  1.d0  1.d0
+  /
+END
+
+REGION prod_well
+  COORDINATES
+    99.d0  0.d0  0.d0
+    100.d0 1.d0  1.d0
+  /
+END
+
+################################################################################
+# CHARACTERISTIC CURVES
+################################################################################
+CHARACTERISTIC_CURVES cc_sco2
+  SATURATION_FUNCTION BROOKS_COREY
+    LIQUID_RESIDUAL_SATURATION 0.20d0
+    ALPHA                      1.d-5
+    LAMBDA                     0.7d0
+    MAX_CAPILLARY_PRESSURE     1.d8
+    SMOOTH
+  /
+  PERMEABILITY_FUNCTION MUALEM_BC_LIQ
+    LIQUID_RESIDUAL_SATURATION 0.20d0
+    LAMBDA                     0.7d0
+  /
+  PERMEABILITY_FUNCTION MUALEM_BC_GAS
+    GAS_RESIDUAL_SATURATION    0.03d0
+    LIQUID_RESIDUAL_SATURATION 0.20d0
+    LAMBDA                     0.7d0
+  /
+END
+
+################################################################################
+# MATERIAL PROPERTY
+################################################################################
+MATERIAL_PROPERTY reservoir
+  ID 1
+  CHARACTERISTIC_CURVES    cc_sco2
+  POROSITY                 0.25d0
+  TORTUOSITY               1.0d0
+  ROCK_DENSITY             2650.d0
+  HEAT_CAPACITY            1000.d0
+  THERMAL_CONDUCTIVITY_DRY 2.0d0
+  THERMAL_CONDUCTIVITY_WET 2.5d0
+  PERMEABILITY
+    PERM_ISO 1.d-12
+  /
+END
+
+STRATA
+  REGION   all
+  MATERIAL reservoir
+END
+
+################################################################################
+# FLUID PROPERTY
+################################################################################
+FLUID_PROPERTY
+  DIFFUSION_COEFFICIENT 1.d-9
+END
+
+################################################################################
+# FLOW CONDITIONS
+################################################################################
+
+FLOW_CONDITION initial
+  TYPE
+    LIQUID_PRESSURE    DIRICHLET
+    CO2_MASS_FRACTION  DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE      1.70d7
+  CO2_MASS_FRACTION    1.d-6
+  SALT_MASS_FRACTION   0.05d0
+END
+
+# East face BC — anchors domain pressure (Michael: need at least one flow BC)
+FLOW_CONDITION east_bc
+  TYPE
+    LIQUID_PRESSURE    DIRICHLET
+    CO2_MASS_FRACTION  DIRICHLET
+    SALT_MASS_FRACTION DIRICHLET
+  /
+  LIQUID_PRESSURE      1.70d7
+  CO2_MASS_FRACTION    1.d-6
+  SALT_MASS_FRACTION   0.05d0
+END
+
+# Constant rate injection — SCALED_MASS_RATE NEIGHBOR_PERM
+# SCO2 format: [brine_kg/s, CO2_kg/s, salt_kg/s]
+FLOW_CONDITION inj
+  TYPE
+    RATE SCALED_MASS_RATE NEIGHBOR_PERM
+  /
+  RATE 0.083d0 0.003d0 0.005d0 kg/s
+END
+
+# Constant rate production
+FLOW_CONDITION prod
+  TYPE
+    RATE SCALED_MASS_RATE NEIGHBOR_PERM
+  /
+  RATE -0.083d0 0.0d0 -0.004d0 kg/s
+END
+
+################################################################################
+# BOUNDARY CONDITION — east face anchors pressure
+################################################################################
+BOUNDARY_CONDITION east_face
+  FLOW_CONDITION      east_bc
+  TRANSPORT_CONDITION initial_tc
+  REGION              east
+END
+
+################################################################################
+# SOURCE/SINK
+################################################################################
+SOURCE_SINK inj_ss
+  FLOW_CONDITION      inj
+  TRANSPORT_CONDITION injection_tc
+  REGION              inj_well
+END
+
+SOURCE_SINK prod_ss
+  FLOW_CONDITION      prod
+  TRANSPORT_CONDITION initial_tc
+  REGION              prod_well
+END
+
+################################################################################
+# CHEMISTRY
+################################################################################
+CHEMISTRY
+  DATABASE ./hanford.dat
+
+  LOG_FORMULATION
+  ACTIVITY_COEFFICIENTS TIMESTEP
+
+  PRIMARY_SPECIES
+    CO2(aq)
+    HCO3-
+    CO3--
+    H+
+    Mg++
+    Ca++
+    Na+
+    Cl-
+    Li+
+  /
+
+  DECOUPLED_EQUILIBRIUM_REACTIONS
+    CO2(aq)
+    CO3--
+  /
+
+  MINERALS
+    Calcite
+    Magnesite
+  /
+
+  MINERAL_KINETICS
+    Calcite
+      RATE_CONSTANT 1.d-13 mol/cm^2-sec
+    /
+    Magnesite
+      RATE_CONSTANT 1.d-13 mol/cm^2-sec
+    /
+  END
+
+  OUTPUT
+    ALL
+    TOTAL
+  /
+END
+
+################################################################################
+# TRANSPORT CONDITIONS
+################################################################################
+TRANSPORT_CONDITION initial_tc
+  TYPE ZERO_GRADIENT
+  CONSTRAINT_LIST
+    0.d0 initial_spec
+  /
+END
+
+TRANSPORT_CONDITION injection_tc
+  TYPE DIRICHLET_ZERO_GRADIENT
+  CONSTRAINT_LIST
+    0.d0 inj_spec
+  /
+END
+
+################################################################################
+# GEOCHEMICAL CONSTRAINTS
+################################################################################
+
+CONSTRAINT initial_spec
+  CONCENTRATIONS
+    CO2(aq)  1.d-16  T
+    HCO3-    1.d-5   T
+    CO3--    1.d-6   T
+    H+       8.0     P
+    Mg++     2.d-1   T   ! 200 mmol/L — major Li+ competitor
+    Ca++     1.d-2   T   !  10 mmol/L
+    Na+      4.d-1   T
+    Cl-      5.d-1   T
+    Li+      1.d-2   T   !  10 mmol/L — target species
+  /
+  MINERALS
+    Calcite    1.d-6  1.d0
+    Magnesite  1.d-6  1.d0
+  /
+END
+
+# Per Dr. Lee: same Mg/Ca/Li as formation brine — only CO2 differs
+CONSTRAINT inj_spec
+  CONCENTRATIONS
+    CO2(aq)  0.227   T   ! CO2-saturated at 170 bar, 50 C
+    HCO3-    1.d-5   T
+    CO3--    1.d-6   T
+    H+       5.5     P   ! pH 5.5 from dissolved CO2
+    Mg++     2.d-1   T   ! SAME — no dilution
+    Ca++     1.d-2   T   ! SAME — no dilution
+    Na+      4.d-1   T
+    Cl-      5.d-1   T
+    Li+      1.d-2   T   ! SAME — no dilution
+  /
+END
+
+################################################################################
+# INITIAL CONDITION
+################################################################################
+INITIAL_CONDITION
+  FLOW_CONDITION      initial
+  TRANSPORT_CONDITION initial_tc
+  REGION              all
+END
+
+################################################################################
+# OUTPUT
+################################################################################
+OUTPUT
+  TIMES y 1 2 3 4 5 6 7 8 9 10 15 20 25 30 35 40 45 50
+  FORMAT TECPLOT BLOCK
+  VARIABLES
+    LIQUID_PRESSURE
+    GAS_SATURATION
+    LIQUID_SATURATION
+    LIQUID_MASS_FRACTIONS
+    POROSITY
+    MINERAL_POROSITY
+  /
+END
+
+################################################################################
+# TIME
+################################################################################
+TIME
+  FINAL_TIME            50.d0   y
+  INITIAL_TIMESTEP_SIZE  1.d-3  h
+  MAXIMUM_TIMESTEP_SIZE  1.d-1  y
+END
+
+END_SUBSURFACE
