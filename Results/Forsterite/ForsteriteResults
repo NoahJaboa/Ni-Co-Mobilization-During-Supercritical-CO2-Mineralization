@@ -1,1 +1,17 @@
-
+=================================================================
+FORSTERITE 1D — SIMULATION SUMMARY
+=================================================================
+  Grid                           : 10 x 1 x 1 cells
+  Domain bulk volume             : 10.0 m3
+  Simulation end time            : 5.00 y
+  Total Mg2+ in domain (final)   : 4.6430e+03 mol
+  Forsterite dissolved           : 2.3503e+03 mol
+  Magnesite precipitated         : 7.8914e+01 mol
+  SiO2(am) precipitated          : 2.4806e+03 mol
+  Mean porosity change           : +0.32478 %
+  Domain-mean pH (t = 0)         : 7.005
+  Domain-mean pH (final)         : 7.914
+  Mg mass balance closure        : 99.4%
+    (deficit = Mg advected out via east-face BC)
+  Si captured / forsterite diss. : 1.055  (stoich. max = 1.0)
+=================================================================
