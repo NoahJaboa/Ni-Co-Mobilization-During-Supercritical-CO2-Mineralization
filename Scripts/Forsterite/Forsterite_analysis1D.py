@@ -1,16 +1,3 @@
-"""
-forsterite_1D_analysis.py
-=========================
-Post-processing for PFLOTRAN 1D forsterite dissolution runs.
-Grid: 10x1x1, each cell 1m x 1m x 1m
-
-Outputs (saved to OUTDIR):
-  spatial_profiles.png  — line plots along x at key times (pH, VFs, Mg)
-  timeseries_summary.png — 2x2 domain-integrated panel
-  Mg_mass_balance.png
-  Console summary
-"""
-
 import h5py
 import numpy as np
 import matplotlib
@@ -25,20 +12,17 @@ import os
 FILE   = r"C:\Users\noahm\OneDrive\Desktop\REU\Forsterite\1D\forsterite_1D.h5"
 OUTDIR = r"C:\Users\noahm\OneDrive\Desktop\REU\Forsterite\1D"
 
-NX, NY, NZ = 10, 1, 1          # 1D column along x
-CELL_LENGTH = 1.0               # metres per cell along x
-X_CENTERS = np.arange(0.5, NX * CELL_LENGTH, CELL_LENGTH)  # cell centres [m]
+NX, NY, NZ = 10, 1, 1
+CELL_LENGTH = 1.0
+X_CENTERS = np.arange(0.5, NX * CELL_LENGTH, CELL_LENGTH)
 
-# Snapshot times (years) for spatial profile plots
 SNAP_TIMES = [0.001, 0.01, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0]
 
-# CO2 injection shut-off time
-INJECTION_OFF = 2.0             # years
+INJECTION_OFF = 2.0
 
-# Physical constants
-RHO_FORSTERITE = 3222.0;  MW_FORSTERITE = 0.14069   # kg/m3, kg/mol Mg2SiO4
-RHO_MAGNESITE  = 2958.0;  MW_MAGNESITE  = 0.08431   # kg/m3, kg/mol MgCO3
-RHO_SIO2AM     = 2200.0;  MW_SIO2AM     = 0.06008   # kg/m3, kg/mol SiO2
+RHO_FORSTERITE = 3222.0;  MW_FORSTERITE = 0.14069
+RHO_MAGNESITE  = 2958.0;  MW_MAGNESITE  = 0.08431
+RHO_SIO2AM     = 2200.0;  MW_SIO2AM     = 0.06008
 
 os.makedirs(OUTDIR, exist_ok=True)
 
@@ -56,19 +40,10 @@ def sorted_time_keys(f):
 
 
 def reshape_1d(arr):
-    """
-    PFLOTRAN stores in Fortran order (NX, NY, NZ).
-    For 1D (10x1x1) this gives a 10-element array along x.
-    Returns 1D numpy array of length NX.
-    """
     return arr.squeeze().reshape((NX, NY, NZ), order="F")[:, 0, 0]
 
 
 def load_variable(h5file, varname):
-    """
-    Load one spatial variable at every timestep.
-    Returns data (T, NX) and times (T,).
-    """
     frames, times = [], []
     with h5py.File(h5file, "r") as f:
         for tk in sorted_time_keys(f):
@@ -101,10 +76,6 @@ def select_snapshots(times, snap_times):
 # SPATIAL PROFILE PLOTS (line plots along x at key times)
 # =============================================================================
 def plot_spatial_profiles(h5file):
-    """
-    Multi-panel figure: one subplot per variable, one line per snapshot time.
-    Shows how the reaction front moves along the 1D column.
-    """
     VARS = [
         ("pH",                                   "pH",                  "RdYlBu"),
         ("Forsterite_VF [m^3 mnrl_m^3 bulk]",   "Forsterite VF [m3/m3]","plasma_r"),
@@ -117,7 +88,6 @@ def plot_spatial_profiles(h5file):
     fig, axes = plt.subplots(n, 1, figsize=(10, n * 3.0), sharex=True)
     fig.suptitle("1D Spatial Profiles Along Column", fontsize=13, fontweight="bold")
 
-    # Build a colourmap for time progression
     cmap_time = plt.cm.plasma
     n_snaps = len(SNAP_TIMES)
 
@@ -143,7 +113,6 @@ def plot_spatial_profiles(h5file):
                    alpha=0.7, label="Injection cell")
 
     axes[-1].set_xlabel("x along column (m)")
-    # Single legend on top panel
     axes[0].legend(fontsize=7, loc="upper right", ncol=2)
 
     fig.tight_layout()
@@ -157,13 +126,6 @@ def plot_spatial_profiles(h5file):
 # STRIP SNAPSHOT PLOTS  (1 x NX imshow — where in the column things happen)
 # =============================================================================
 def plot_strip_snapshots(h5file):
-    """
-    For each variable, one PNG with a row of 1xNX colour strips —
-    one strip per snapshot time. Shows spatially where dissolution /
-    precipitation / pH change is happening along the column.
-    vmin/vmax computed globally across all timesteps so strips are
-    on the same scale (identical logic to the 2D snapshot approach).
-    """
     VARS = [
         ("pH",                                   "pH",                   "RdYlBu"),
         ("Forsterite_VF [m^3 mnrl_m^3 bulk]",   "Forsterite VF [m3/m3]","plasma_r"),
@@ -180,7 +142,6 @@ def plot_strip_snapshots(h5file):
             print(f"      SKIPPED — {e}")
             continue
 
-        # Global colour scale — same across all strips so they're comparable
         vmin = float(np.nanmin(data))
         vmax = float(np.nanmax(data))
         if np.isclose(vmin, vmax):
@@ -192,7 +153,6 @@ def plot_strip_snapshots(h5file):
             print(f"      No snapshot times in range — skipping.")
             continue
 
-        # Each strip is 1 row x NX cols; stack vertically with labels
         fig, axes = plt.subplots(n, 1,
                                  figsize=(max(8, NX * 0.9), n * 1.4),
                                  squeeze=False)
@@ -201,7 +161,6 @@ def plot_strip_snapshots(h5file):
 
         for i, (idx, t) in enumerate(zip(idx_list, t_list)):
             ax = axes[i][0]
-            # Reshape to (1, NX) for imshow
             strip = data[idx].reshape(1, NX)
             im = ax.imshow(strip, aspect="auto", cmap=cmap,
                            vmin=vmin, vmax=vmax,
@@ -225,11 +184,6 @@ def plot_strip_snapshots(h5file):
 
 
 def read_timeseries(h5file):
-    """
-    Domain-integrated quantities at every timestep.
-    Mg moles: molarity [mol/L] x liters solution per cell.
-    Mineral moles: VF change x bulk_vol x density / MW.
-    """
     times_l    = []
     moles_mg_l = []
     vf_fors_l, vf_mag_l, vf_sio2_l = [], [], []
@@ -257,7 +211,6 @@ def read_timeseries(h5file):
             mag      = load("Magnesite_VF [m^3 mnrl_m^3 bulk]")
             sio2     = load("SiO2(am)_VF [m^3 mnrl_m^3 bulk]")
 
-            # mol/L × L_solution per cell (1000 L/m3 conversion)
             L_solution = cell_vol * por * sat_l * 1000.0
             moles_mg_l.append(float(np.sum(mg_molar * L_solution)))
 
@@ -310,7 +263,6 @@ def plot_timeseries(d):
     fig.suptitle("1D Domain-Integrated Reaction Summary", fontsize=13,
                  fontweight="bold")
 
-    # [0,0] Mineral reactions
     ax = axes[0, 0]
     ax.plot(times, d["moles_fors_diss"], lw=2, color="darkorange",
             label="Forsterite dissolved")
@@ -325,7 +277,6 @@ def plot_timeseries(d):
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
-    # [0,1] pH
     ax = axes[0, 1]
     ax.plot(times, d["mean_ph"], lw=2, color="steelblue")
     _vline(ax, t_end)
@@ -336,7 +287,6 @@ def plot_timeseries(d):
     if t_end >= INJECTION_OFF:
         ax.legend(fontsize=9)
 
-    # [1,0] Mg moles
     ax = axes[1, 0]
     ax.plot(times, d["moles_mg"], lw=2, color="teal")
     _vline(ax, t_end)
@@ -348,7 +298,6 @@ def plot_timeseries(d):
     if t_end >= INJECTION_OFF:
         ax.legend(fontsize=9)
 
-    # [1,1] Porosity
     ax = axes[1, 1]
     ax.plot(times, d["delta_por"] * 100, lw=2, color="dimgray")
     ax.axhline(0, color="k", lw=0.8, ls=":")
